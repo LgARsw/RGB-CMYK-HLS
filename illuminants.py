@@ -24,6 +24,10 @@ M_B = np.array([
 M_B_INV = np.linalg.inv(M_B)
 
 def get_chromatic_adaptation_matrix(source_wp, target_wp):
+    """
+    Вычисляет матрицу хроматической адаптации Брэдфорда
+    для перехода от одного источника освещения к другому.
+    """
     # Перевод белых точек в коническое пространство ответов (L, M, S)
     src_lms = np.dot(M_B, source_wp)
     tgt_lms = np.dot(M_B, target_wp)

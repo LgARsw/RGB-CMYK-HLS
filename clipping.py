@@ -1,5 +1,5 @@
 def apply_clipping(r, g, b):
-    """Стратегия Clipping (Обрезание по границам 0..255)"""
+    
     r_out = max(0.0, min(255.0, r))
     g_out = max(0.0, min(255.0, g))
     b_out = max(0.0, min(255.0, b))
@@ -7,7 +7,6 @@ def apply_clipping(r, g, b):
     return int(round(r_out)), int(round(g_out)), int(round(b_out)), was_out
 
 def apply_scaling(r, g, b):
-    """Стратегия Scaling (Пропорциональное сжатие диапазона оттенков)"""
     vals = [r, g, b]
     min_v = min(vals)
     max_v = max(vals)

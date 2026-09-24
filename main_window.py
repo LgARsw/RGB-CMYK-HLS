@@ -1,14 +1,15 @@
+import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QLabel, QSlider, QLineEdit, QComboBox, QPushButton, 
-                             QStatusBar, QMessageBox) # Добавили QMessageBox для окна справки
+                             QLabel, QSlider, QLineEdit, QPushButton, QStatusBar, QMessageBox) 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIntValidator
 
 class MainWindow(QMainWindow):
     def __init__(self, vm):
         super().__init__()
         self.vm = vm
-        self.setWindowTitle("Лабораторная работа №1 — Вариант 2 (RGB ↔ CMYK ↔ HLS)")
-        self.setGeometry(100, 100, 850, 600)
+        self.setWindowTitle("Лабораторная работа №1 — Прямые переходы (RGB ↔ CMYK ↔ HLS)")
+        self.setGeometry(100, 100, 850, 650) # Стабильный стартовый размер окна
         
         self.init_ui()
         self.vm.set_view(self)
@@ -19,28 +20,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         
-        # --- НАСТРОЙКИ СТАНДАРТОВ ---
+        # --- ВЕРХНЯЯ ПАНЕЛЬ С КНОПКОЙ ---
         cfg_layout = QHBoxLayout()
-        cfg_layout.addWidget(QLabel("Стандарт освещения:"))
-        self.combo_illum = QComboBox()
-        self.combo_illum.addItems(["D65", "D50", "E"])
-        cfg_layout.addWidget(self.combo_illum)
+        cfg_layout.addStretch()
         
-        cfg_layout.addWidget(QLabel("Метод CMYK:"))
-        self.combo_cmyk = QComboBox()
-        self.combo_cmyk.addItems(["GCR", "UCR"])
-        cfg_layout.addWidget(self.combo_cmyk)
-        
-        cfg_layout.addWidget(QLabel("Вне охвата:"))
-        self.combo_gamut = QComboBox()
-        self.combo_gamut.addItems(["Clipping", "Scaling"])
-        cfg_layout.addWidget(self.combo_gamut)
-        
-        # --- КНОПКА СПРАВКИ (HELP) ---
         self.btn_help = QPushButton("Справка")
-        self.btn_help.setFixedWidth(80) # Аккуратный фиксированный размер
+        self.btn_help.setFixedWidth(120)  # Кнопка расширена, текст не зажат
         cfg_layout.addWidget(self.btn_help)
-        
         layout.addLayout(cfg_layout)
         
         # --- ПАЛИТРА И ПРОСМОТР ---
@@ -53,22 +39,24 @@ class MainWindow(QMainWindow):
         preview_layout.addWidget(self.color_box)
         layout.addLayout(preview_layout)
         
-        # --- СЛАЙДЕРЫ ---
+        # --- БЛОК RGB ---
         layout.addWidget(QLabel("<h3>Модель RGB (0 - 255)</h3>"))
         self.sld_r, self.edt_r = self.add_row(layout, "Red:")
         self.sld_g, self.edt_g = self.add_row(layout, "Green:")
         self.sld_b, self.edt_b = self.add_row(layout, "Blue:")
         
-        layout.addWidget(QLabel("<h3>Модель HLS (H: 0..360°, L/S: 0..100%)</h3>"))
+        # --- БЛОК HLS ---
+        layout.addWidget(QLabel("<h3>Модель HLS (H: 0..360, L/S: 0..100)</h3>"))
         self.sld_h, self.edt_h = self.add_row(layout, "Hue (H):", 0, 360)
         self.sld_hl, self.edt_hl = self.add_row(layout, "Lightness (L):", 0, 100)
         self.sld_hs, self.edt_hs = self.add_row(layout, "Saturation (S):", 0, 100)
         
-        layout.addWidget(QLabel("<h3>Модель CMYK (0% - 100%)</h3>"))
-        self.sld_cc, self.edt_cc = self.add_row(layout, "C (%):", 0, 100)
-        self.sld_cm, self.edt_cm = self.add_row(layout, "M (%):", 0, 100)
-        self.sld_cy, self.edt_cy = self.add_row(layout, "Y (%):", 0, 100)
-        self.sld_ck, self.edt_ck = self.add_row(layout, "K (%):", 0, 100)
+        # --- БЛОК CMYK ---
+        layout.addWidget(QLabel("<h3>Модель CMYK (0 - 100)</h3>"))
+        self.sld_cc, self.edt_cc = self.add_row(layout, "Cyan (C):", 0, 100)
+        self.sld_cm, self.edt_cm = self.add_row(layout, "Magenta (M):", 0, 100)
+        self.sld_cy, self.edt_cy = self.add_row(layout, "Yellow (Y):", 0, 100)
+        self.sld_ck, self.edt_ck = self.add_row(layout, "Key (K):", 0, 100)
         
         self.status = QStatusBar()
         self.setStatusBar(self.status)
@@ -77,53 +65,75 @@ class MainWindow(QMainWindow):
 
     def add_row(self, parent_layout, label_text, min_v=0, max_v=255):
         row = QHBoxLayout()
-        row.addWidget(QLabel(label_text), 1)
+        
+        # Создаем фиксированные зазоры в строке, чтобы элементы не слипались при растяжении
+        row.setContentsMargins(10, 0, 10, 0)
+        row.setSpacing(15)
+        
+        lbl = QLabel(label_text)
+        # Выравнивание текста строго по правому краю и центру по вертикали
+        lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
+        # Расширили ширину до 180px — теперь любое длинное слово гарантированно влезет целиком
+        lbl.setFixedWidth(180) 
+        # Небольшой визуальный отступ справа, чтобы текст не лип к началу ползунка
+        lbl.setStyleSheet("padding-right: 6px; font-weight: 500;") 
+        row.addWidget(lbl)
+        
         slider = QSlider(Qt.Horizontal)
         slider.setRange(min_v, max_v)
+        slider.setSingleStep(1)
+        slider.setPageStep(10)
         row.addWidget(slider, 5)
+        
         edit = QLineEdit()
-        edit.setFixedWidth(60)
+        edit.setFixedWidth(90)  # Увеличенные поля для целых чисел
+        
+        # --- ИСПРАВЛЕНИЕ: Выравнивание текста внутри числовых полей ввода по правому краю ---
+        edit.setAlignment(Qt.AlignRight) 
+        
+        edit.setValidator(QIntValidator(min_v, max_v, self))  # Запрет букв и некорректного ввода
         row.addWidget(edit, 1)
+        
         parent_layout.addLayout(row)
         return slider, edit
 
     def connect_signals(self):
-        self.combo_illum.currentIndexChanged.connect(lambda: self.vm.on_illum_changed())
-        self.combo_cmyk.currentIndexChanged.connect(lambda: self.vm.sync_all_from_rgb())
-        self.combo_gamut.currentIndexChanged.connect(lambda: self.vm.sync_all_from_rgb())
         self.btn_picker.clicked.connect(self.vm.open_dialog_picker)
-        
-        # Подключаем клик по кнопке справки к методу отображения окна
         self.btn_help.clicked.connect(self.show_help)
         
-        self.sld_r.valueChanged.connect(lambda v: self.vm.update_from_sliders('RGB'))
-        self.sld_g.valueChanged.connect(lambda v: self.vm.update_from_sliders('RGB'))
-        self.sld_b.valueChanged.connect(lambda v: self.vm.update_from_sliders('RGB'))
+        # Изменение ползунков (работает мгновенно)
+        self.sld_r.valueChanged.connect(lambda: self.vm.update_from_sliders('RGB'))
+        self.sld_g.valueChanged.connect(lambda: self.vm.update_from_sliders('RGB'))
+        self.sld_b.valueChanged.connect(lambda: self.vm.update_from_sliders('RGB'))
         
-        self.sld_h.valueChanged.connect(lambda v: self.vm.update_from_sliders('HLS'))
-        self.sld_hl.valueChanged.connect(lambda v: self.vm.update_from_sliders('HLS'))
-        self.sld_hs.valueChanged.connect(lambda v: self.vm.update_from_sliders('HLS'))
+        self.sld_h.valueChanged.connect(lambda: self.vm.update_from_sliders('HLS'))
+        self.sld_hl.valueChanged.connect(lambda: self.vm.update_from_sliders('HLS'))
+        self.sld_hs.valueChanged.connect(lambda: self.vm.update_from_sliders('HLS'))
         
-        self.sld_cc.valueChanged.connect(lambda v: self.vm.update_from_sliders('CMYK'))
-        self.sld_cm.valueChanged.connect(lambda v: self.vm.update_from_sliders('CMYK'))
-        self.sld_cy.valueChanged.connect(lambda v: self.vm.update_from_sliders('CMYK'))
-        self.sld_ck.valueChanged.connect(lambda v: self.vm.update_from_sliders('CMYK'))
+        self.sld_cc.valueChanged.connect(lambda: self.vm.update_from_sliders('CMYK'))
+        self.sld_cm.valueChanged.connect(lambda: self.vm.update_from_sliders('CMYK'))
+        self.sld_cy.valueChanged.connect(lambda: self.vm.update_from_sliders('CMYK'))
+        self.sld_ck.valueChanged.connect(lambda: self.vm.update_from_sliders('CMYK'))
         
+        # Изменение полей ввода (срабатывает только после окончания ввода — цифры не прыгают)
         self.edt_r.editingFinished.connect(lambda: self.vm.update_from_edits('RGB'))
         self.edt_g.editingFinished.connect(lambda: self.vm.update_from_edits('RGB'))
         self.edt_b.editingFinished.connect(lambda: self.vm.update_from_edits('RGB'))
+        
+        self.edt_h.editingFinished.connect(lambda: self.vm.update_from_edits('HLS'))
+        self.edt_hl.editingFinished.connect(lambda: self.vm.update_from_edits('HLS'))
+        self.edt_hs.editingFinished.connect(lambda: self.vm.update_from_edits('HLS'))
+        
+        self.edt_cc.editingFinished.connect(lambda: self.vm.update_from_edits('CMYK'))
+        self.edt_cm.editingFinished.connect(lambda: self.vm.update_from_edits('CMYK'))
+        self.edt_cy.editingFinished.connect(lambda: self.vm.update_from_edits('CMYK'))
+        self.edt_ck.editingFinished.connect(lambda: self.vm.update_from_edits('CMYK'))
 
-    # Новый метод, который будет показывать красивое всплывающее окошко
     def show_help(self):
         help_text = (
             "<b>Лабораторная работа №1 — Вариант 2</b><br><br>"
-            "Приложение предназначено для конвертации цветов между цветовыми моделями "
-            "<b>RGB</b>, <b>CMYK</b> и <b>HLS</b> в режиме реального времени.<br><br>"
-            "<b>Основные возможности:</b><br>"
-            "• Интерактивное изменение цвета слайдерами или вводом точных значений.<br>"
-            "• Поддержка стандартов освещения (D65, D50, E).<br>"
-            "• Расчет CMYK с использованием методов генерации черного (GCR / UCR).<br>"
-            "• Обработка цветов вне цветового охвата (Clipping / Scaling).<br>"
-            "• Быстрый выбор цвета с помощью системной палитры."
+            "Приложение демонстрирует прямую конвертацию между цветовыми моделями "
+            "<b>RGB</b>, <b>CMYK</b> и <b>HLS</b> без привлечения сторонних пространств."
         )
-        QMessageBox.information(self, "О программе / Справка", help_text)
+        QMessageBox.information(self, "О программе", help_text)
