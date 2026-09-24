@@ -15,7 +15,6 @@ class ConverterViewModel:
         if self.lock or not self.view: return
         self.lock = True
         
-        # Прямой расчет HLS и CMYK на основе базового состояния RGB
         h, l, s = space_math.rgb_to_hls(self.r, self.g, self.b)
         c, m, y_c, k = space_math.rgb_to_cmyk(self.r, self.g, self.b)
         
